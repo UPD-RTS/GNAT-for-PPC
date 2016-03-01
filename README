@@ -1,0 +1,30 @@
+
+Porting to PPC of GNAT-FOR-LEON /ORK+ RTOS from Universitad Politecnica de Madrid
+(http://www.dit.upm.es/~ork/index.html/)
+The actual target is a PPC750-like system simulator but runs as well on top of
+the qemu PPC (prep) model.
+
+############### Tool chain #####################################################
+The toolchain is not fully integrated and some manual modifications need to be applied.
+The only relevant modifcations in the toolchain are in the Makefile.fpu
+for which a symbolic link should be defined (Makefile -> Makefile.fpu).
+Just make sure that Makefile-fpu paths are not broken.
+
+This repo includes only those files in gcc that have been modified.
+
+
+################ Building an application ###################################################
+
+Need to include some compilation flags (as they have not been made implicit in the driver yet)
+
+/path/to/powerpc-elf-gnatmake file.adb -f -v -msim -largs -nostartfiles boot.o -Xlinker -lc -t -M -T/path/to/gnatforleon-2.3.0-src/src/powerpc.ld
+
+where boot.o is the outcome of compiling boot.S
+
+/path/to/powerpc-elf-gcc -c boot.S 
+
+To do so header msr.h and hid0.h should be visible (they are located in [...]gcc/ada).
+I suggest to cpoy them to the build folder (until we make it fully automated).
+
+
+

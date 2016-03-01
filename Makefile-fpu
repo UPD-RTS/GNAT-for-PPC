@@ -1,0 +1,293 @@
+######################################################################
+
+# Directory where GNATforPPC will be installed
+PREFIX        = /usr/local/gnatforppc-2.3.0
+# Path to a native gnat-2011 distribution
+GNATBOOT      = /usr/local/gnat/
+
+
+BIN           = $(PREFIX)/bin
+CONFIG_PATH   = $(PATH)
+EXPORT_PATH   = export PATH=$(GNATBOOT):$(BIN):$(CONFIG_PATH)
+TMPDIR_EXTRA  = tmp-
+TARGET        = powerpc-elf
+TARGET-GDB    = powerpc-elf
+BINUTIL_EXTRA = --disable-nls --build=i686-pc-linux-gnu 
+
+######################################################################
+
+all: clean \
+	build-binutils \
+	build-gmp \
+	build-mpfr \
+	build-mpc \
+	build-gcc-gcc \
+	build-newlib \
+	build-gcc \
+	build-gdb \
+	install-cinterface
+#         clean
+
+clean: newlib-clean \
+	gcc-clean \
+	gmp-clean \
+	mpfr-clean \
+	mpc-clean \
+	binutils-clean \
+        gdb-clean
+
+######################################################################
+
+install-cinterface:
+	cp c_interface/* $(PREFIX)/include/
+
+######################################################################
+
+adalib: clean-adalib \
+	compile-adalib \
+	install-adalib
+
+clean-adalib: 
+	rm -rf $(PREFIX)/lib/gcc/powerpc-elf/4.5.3/rts-ravenscar
+
+compile-adalib: gcc-compile-rts-full
+
+install-adalib: gcc-install-rts-full
+
+######################################################################
+
+build-binutils: binutils-configure \
+	binutils-compile \
+	binutils-install
+
+build-gmp: gmp-configure \
+	gmp-compile \
+	gmp-install
+
+build-mpfr: mpfr-configure \
+	mpfr-compile \
+	mpfr-install
+
+build-mpc: mpc-configure \
+	mpc-compile \
+	mpc-install
+
+build-gcc-gcc: gcc-configure \
+	gcc-compile-gcc \
+	gcc-install-gcc
+
+build-newlib: newlib-configure \
+	newlib-compile \
+	newlib-install
+
+build-gcc: gcc-configure \
+	gcc-compile \
+	gcc-compile-rts-full \
+	gcc-compile-cross-gnattools \
+	gcc-compile-ada-all-cross \
+	gcc-install-rts-full \
+	gcc-install \
+	gcc-install-path
+
+build-gdb: gdb-configure \
+	gdb-compile \
+	gdb-install
+
+######################################################################
+gmp-configure:
+	if [ ! -d $(TMPDIR_EXTRA)gmp-4.2.2-build ] ; then mkdir $(TMPDIR_EXTRA)gmp-4.2.2-build; fi
+	cd $(TMPDIR_EXTRA)gmp-4.2.2-build; $(EXPORT_PATH); \
+	../gmp-4.2.2/configure --disable-shared --prefix=$(PREFIX)/tmp/gmp-install \
+	2>&1 | tee compile-gmp-configure.out
+
+gmp-compile:
+	cd $(TMPDIR_EXTRA)gmp-4.2.2-build; $(EXPORT_PATH); \
+	make 2>&1 | tee compile-gmp-make.out
+
+gmp-install:
+	cd $(TMPDIR_EXTRA)gmp-4.2.2-build; $(EXPORT_PATH); \
+	make install 2>&1 | tee compile-gmp-install.out
+
+gmp-clean:
+	rm -rf $(TMPDIR_EXTRA)gmp-4.2.2-build; \
+	rm -rf $(PREFIX)/tmp/gmp-install
+######################################################################
+mpc-configure:
+	if [ ! -d $(TMPDIR_EXTRA)mpc-0.8-build ] ; then mkdir $(TMPDIR_EXTRA)mpc-0.8-build; fi
+	cd $(TMPDIR_EXTRA)mpc-0.8-build; $(EXPORT_PATH); \
+        ../mpc-0.8/configure --disable-shared --prefix=$(PREFIX)/tmp/mpc-install \
+	--with-gmp=$(PREFIX)/tmp/gmp-install \
+	--with-mpfr=$(PREFIX)/tmp/mpfr-install \
+	2>&1 | tee compile-mpc-configure.out
+
+mpc-compile:
+	cd $(TMPDIR_EXTRA)mpc-0.8-build; $(EXPORT_PATH); \
+	make 2>&1 | tee compile-mpc-make.out
+
+mpc-install:
+	cd $(TMPDIR_EXTRA)mpc-0.8-build; $(EXPORT_PATH); \
+	make install 2>&1 | tee compile-mpc-install.out
+
+mpc-clean:
+	rm -rf $(TMPDIR_EXTRA)mpc-0.8-build; \
+	rm -rf $(PREFIX)/tmp/mpc-install
+
+######################################################################
+mpfr-configure:
+	if [ ! -d $(TMPDIR_EXTRA)mpfr-2.3.1-build ] ; then mkdir $(TMPDIR_EXTRA)mpfr-2.3.1-build; fi
+	cd $(TMPDIR_EXTRA)mpfr-2.3.1-build; $(EXPORT_PATH); \
+        ../mpfr-2.3.1/configure --disable-shared --prefix=$(PREFIX)/tmp/mpfr-install \
+	--with-gmp=$(PREFIX)/tmp/gmp-install \
+	2>&1 | tee compile-mpfr-configure.out
+
+mpfr-compile:
+	cd $(TMPDIR_EXTRA)mpfr-2.3.1-build; $(EXPORT_PATH); \
+	make 2>&1 | tee compile-mpfr-make.out
+
+mpfr-install:
+	cd $(TMPDIR_EXTRA)mpfr-2.3.1-build; $(EXPORT_PATH); \
+	make install 2>&1 | tee compile-mpfr-install.out
+
+mpfr-clean:
+	rm -rf $(TMPDIR_EXTRA)mpfr-2.3.1-build; \
+	rm -rf $(PREFIX)/tmp/mpfr-install
+######################################################################
+gcc-configure:
+	if [ ! -d $(TMPDIR_EXTRA)gcc-4.5-build ] ; then mkdir $(TMPDIR_EXTRA)gcc-4.5-build; fi
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	../gcc-4.5-src/configure --target=$(TARGET) --prefix=$(PREFIX) \
+	--with-gmp=$(PREFIX)/tmp/gmp-install \
+	--with-mpfr=$(PREFIX)/tmp/mpfr-install \
+	--with-mpc=$(PREFIX)/tmp/mpc-install \
+	--with-gnu-as --with-gnu-ld \
+	--verbose --enable-languages="ada,c" --disable-shared \
+	--without-libiconv-prefix \
+	--disable-nls --disable-libada --disable-libssp \
+	--with-newlib 2>&1 | tee compile-gcc-configure.out
+
+gcc-compile:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make 2>&1 | tee compile-gcc-make.out
+
+gcc-compile-gcc:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make all-gcc 2>&1 | tee compile-gcc-make-gcc.out
+
+gcc-compile-rts-zfp:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make -C gcc GNATLIBFLAGS="-gnatpgn" GNATLIBCFLAGS="-O2 -MMD" rts-zfp 2>&1 | tee compile-gcc-make-rts-zfp.out
+
+gcc-compile-rts-hi:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make -C gcc GNATLIBFLAGS="-gnatpgn" GNATLIBCFLAGS="-O2 -MMD" rts-hi 2>&1 | tee compile-gcc-make-rts-hi.out
+
+gcc-compile-rts-full:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	cd gcc/ada; \
+	make -f ../../../gcc-4.5-src/gcc/ada/Makefile.hie RTS=ravenscar GNAT_SRC_DIR=../../../gcc-4.5-src/gcc/ada/ CC="../xgcc -B../" 2>&1 | tee compile-gcc-make-rts-full.out
+
+gcc-compile-cross-gnattools:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make -C gcc cross-gnattools 2>&1 | tee compile-gcc-make-cross-gnattools.out
+
+gcc-compile-ada-all-cross:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make -C gcc ada.all.cross 2>&1 | tee compile-gcc-make-ada-all-cross.out
+
+gcc-install:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make install 2>&1 | tee compile-gcc-install.out
+
+gcc-install-rts-zfp:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make -C gcc/ada install-rts RTS_NAME=zfp libsubdir=$(PREFIX)/lib/gcc/powerpc-elf/4.1.3 2>&1 | tee compile-gcc-make-rts-full.out
+
+gcc-install-rts-hi:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make -C gcc/ada install-rts RTS_NAME=hi libsubdir=$(PREFIX)/lib/gcc/powerpc-elf/4.1.3 2>&1 | tee compile-gcc-make-rts-full.out
+
+gcc-install-rts-full:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	cd gcc/ada; \
+	make -f ../../../gcc-4.5-src/gcc/ada/Makefile.hie RTS=ravenscar PREFIX=$(PREFIX)/lib/gcc/powerpc-elf/4.5.3 install 2>&1 | tee compile-gcc-install-rts-full.out
+
+gcc-install-gcc:
+	cd $(TMPDIR_EXTRA)gcc-4.5-build; $(EXPORT_PATH); \
+	make install-gcc 2>&1 | tee compile-gcc-install-gcc.out
+
+gcc-install-path:
+	echo "rts-ravenscar/adainclude" > $(PREFIX)/lib/gcc/powerpc-elf/4.5.3/ada_source_path
+	echo "rts-ravenscar/adalib" > $(PREFIX)/lib/gcc/powerpc-elf/4.5.3/ada_object_path
+#rmdir $(PREFIX)/lib/gcc/sparc-elf/4.3.4/adainclude
+#rmdir $(PREFIX)/lib/gcc/sparc-elf/4.3.4/adalib
+
+gcc-clean:
+	-rm -rf $(TMPDIR_EXTRA)gcc-4.5-build
+
+######################################################################
+
+gdb-dir:
+	if [ ! -d $(TMPDIR_EXTRA)gdb-7.2-build ] ; then mkdir $(TMPDIR_EXTRA)gdb-7.2-build; fi
+
+gdb-configure: gdb-dir
+	cd $(TMPDIR_EXTRA)gdb-7.2-build; $(EXPORT_PATH); \
+	../gdb-7.2-2011-src/configure --target=$(TARGET-GDB) --prefix=$(PREFIX) --program-prefix=$(PREFIX) \
+	2>&1 | tee compile-gdb-configure.out
+
+gdb-compile: gdb-dir
+	cd $(TMPDIR_EXTRA)gdb-7.2-build; $(EXPORT_PATH); \
+	make $(EXTRA_FLAGS) 2>&1 | tee compile-gdb-make.out
+
+gdb-install: gdb-dir
+	cd $(TMPDIR_EXTRA)gdb-7.2-build; $(EXPORT_PATH);  \
+	make $(EXTRA_FLAGS) install 2>&1 | tee compile-gdb-install.out
+
+gdb-clean:
+	rm -rf $(TMPDIR_EXTRA)gdb-7.2-build
+
+######################################################################
+
+newlib-dir:
+	if [ ! -d $(TMPDIR_EXTRA)newlib-1.14.0-build ] ; then mkdir $(TMPDIR_EXTRA)newlib-1.14.0-build; fi
+
+newlib-configure: newlib-dir
+
+	cd $(TMPDIR_EXTRA)newlib-1.14.0-build; $(EXPORT_PATH); \
+	../newlib-1.14.0/configure --target=$(TARGET) --prefix=$(PREFIX) $(NEWLIB_EXTRA) \
+	--with-gmp=$(PREFIX)/tmp/gmp-install \
+	--with-mpfr=$(PREFIX)/tmp/mpfr-install \
+	--enable-newlib-multithread --verbose 2>&1 | tee compile-newlib-configure.out
+
+newlib-compile: newlib-dir
+	cd $(TMPDIR_EXTRA)newlib-1.14.0-build; $(EXPORT_PATH); \
+	make $(EXTRA_FLAGS) 2>&1 | tee compile-newlib-make.out
+
+newlib-install: newlib-dir
+	cd $(TMPDIR_EXTRA)newlib-1.14.0-build; $(EXPORT_PATH); \
+	make $(EXTRA_FLAGS) install 2>&1 | tee compile-newlib-install.out
+
+newlib-clean: 
+	-rm -rf $(TMPDIR_EXTRA)newlib-1.14.0-build
+
+######################################################################
+
+binutils-dir:
+	if [ ! -d $(TMPDIR_EXTRA)binutils-2.16.1-build ] ; then mkdir $(TMPDIR_EXTRA)binutils-2.16.1-build; fi
+
+binutils-configure: binutils-dir
+	cd $(TMPDIR_EXTRA)binutils-2.16.1-build; $(EXPORT_PATH); \
+	../binutils-2.16.1/configure --target=$(TARGET) --prefix=$(PREFIX) $(BINUTIL_EXTRA) \
+	--verbose 2>&1 | tee compile-binutils-configure.out
+
+binutils-compile: binutils-dir
+	cd $(TMPDIR_EXTRA)binutils-2.16.1-build; $(EXPORT_PATH); \
+	make $(EXTRA_FLAGS) 2>&1 | tee compile-binutils-make.out
+
+binutils-install: binutils-dir
+	cd $(TMPDIR_EXTRA)binutils-2.16.1-build; $(EXPORT_PATH); \
+	make $(EXTRA_FLAGS) install 2>&1 | tee compile-binutils-install.out
+
+binutils-clean:
+	rm -rf $(TMPDIR_EXTRA)binutils-2.16.1-build
+
+######################################################################

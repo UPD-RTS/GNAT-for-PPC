@@ -1,0 +1,31 @@
+11a12
+> --                         Copyright (C) 2012 UNIDP                         --
+39c40
+< --  This is the ERC32/LEON version of this package
+---
+> --  This is the PPC version of this package
+67c68
+<    Clock_Frequency : constant Natural := 41;  --  MegaHertz
+---
+>    Clock_Frequency : constant Natural := 74;  --  MegaHertz
+78,79c79,80
+<    Interrupt_Levels : constant := 15;
+<    --  Number of interrupt levels in the SPARC architecture
+---
+>    Interrupt_Levels : constant := 1;
+>    --  Number of interrupt levels in the PowerPC architecture
+84,85c85,86
+<    subtype Range_Of_Vector is Natural range 0 .. 255;
+<    --  The SPARC arquitecture supports 256 vectors
+---
+>    subtype Range_Of_Vector is Natural range 0 .. 1;
+>    --  The PowerPC architecture supports a single vector
+91c92
+<    Interrupt_Stack_Size : constant := 20 * 1024;  --  bytes
+---
+>    Interrupt_Stack_Size : constant := 0; --  bytes
+93c94,95
+< 
+---
+>    --  The PowerPC architecture does not provide a reserved stack for
+>    --  interrupts
